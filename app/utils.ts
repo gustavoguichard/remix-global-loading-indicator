@@ -1,9 +1,16 @@
 import { useMatches } from "@remix-run/react";
 import { useMemo } from "react";
+import { compose, join, reject, isBoolean, isNil, flatten } from "lodash/fp";
 
 import type { User } from "~/models/user.server";
 
 const DEFAULT_REDIRECT = "/";
+
+const cx = (...args: unknown[]) =>
+  compose(join(" "), reject(isBoolean), reject(isNil), flatten)(args);
+
+const sleep = (time: number) =>
+  new Promise((resolve) => setTimeout(resolve, time));
 
 /**
  * This should be used any time the redirect path is user-provided
@@ -69,3 +76,5 @@ export function useUser(): User {
 export function validateEmail(email: unknown): email is string {
   return typeof email === "string" && email.length > 3 && email.includes("@");
 }
+
+export { cx, sleep };

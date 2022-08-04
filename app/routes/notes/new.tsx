@@ -5,8 +5,10 @@ import * as React from "react";
 
 import { createNote } from "~/models/note.server";
 import { requireUserId } from "~/session.server";
+import { sleep } from "~/utils";
 
 export async function action({ request }: ActionArgs) {
+  await sleep(1000);
   const userId = await requireUserId(request);
 
   const formData = await request.formData();

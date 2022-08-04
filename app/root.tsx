@@ -11,6 +11,9 @@ import {
 
 import tailwindStylesheetUrl from "./styles/tailwind.css";
 import { getUser } from "./session.server";
+import { sleep } from "./utils";
+import { GlobalLoading } from "./components/global-loading";
+import { GithubLikeProgress } from "./components/github-like-progress";
 
 export const links: LinksFunction = () => {
   return [{ rel: "stylesheet", href: tailwindStylesheetUrl }];
@@ -23,6 +26,7 @@ export const meta: MetaFunction = () => ({
 });
 
 export async function loader({ request }: LoaderArgs) {
+  await sleep(1000);
   return json({
     user: await getUser(request),
   });
@@ -36,6 +40,8 @@ export default function App() {
         <Links />
       </head>
       <body className="h-full">
+        <GlobalLoading />
+        <GithubLikeProgress />
         <Outlet />
         <ScrollRestoration />
         <Scripts />
