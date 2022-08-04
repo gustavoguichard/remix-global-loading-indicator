@@ -6,8 +6,10 @@ import invariant from "tiny-invariant";
 import { deleteNote } from "~/models/note.server";
 import { getNote } from "~/models/note.server";
 import { requireUserId } from "~/session.server";
+import { sleep } from "~/utils";
 
 export async function loader({ request, params }: LoaderArgs) {
+  await sleep(1000);
   const userId = await requireUserId(request);
   invariant(params.noteId, "noteId not found");
 
@@ -19,6 +21,7 @@ export async function loader({ request, params }: LoaderArgs) {
 }
 
 export async function action({ request, params }: ActionArgs) {
+  await sleep(1000);
   const userId = await requireUserId(request);
   invariant(params.noteId, "noteId not found");
 
