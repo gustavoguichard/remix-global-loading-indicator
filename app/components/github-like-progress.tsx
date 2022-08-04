@@ -1,6 +1,7 @@
 import * as React from "react";
 import { useTransition } from "@remix-run/react";
 import { cx } from "~/utils";
+import { match, P } from "ts-pattern";
 
 function GithubLikeProgress() {
   const transition = useTransition();
@@ -29,12 +30,11 @@ function GithubLikeProgress() {
         ref={ref}
         className={cx(
           "h-full bg-gradient-to-r from-blue-500 to-cyan-500 transition-all duration-500 ease-in-out",
-          transition.state === "idle" &&
-            animationComplete &&
-            "w-0 opacity-0 transition-none",
-          transition.state === "submitting" && "w-4/12",
-          transition.state === "loading" && "w-10/12",
-          transition.state === "idle" && !animationComplete && "w-full"
+          match([transition.state, animationComplete])
+            .with(["idle", true], () => "w-0 opacity-0 transition-none")
+            .with(["submitting", P._], () => "w-4/12")
+            .with(["loading", P._], () => "w-10/12")
+            .otherwise(() => "w-full")
         )}
       />
     </div>
