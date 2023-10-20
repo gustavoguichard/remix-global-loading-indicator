@@ -4,6 +4,8 @@ import {
   type SnakeCase,
   camelCase,
   snakeCase,
+  deepCamelKeys,
+  deepSnakeKeys,
 } from "string-ts";
 
 const SEPARATORS_TEXT =
@@ -32,7 +34,7 @@ namespace TypeTransforms {
   type testSnake = Expect<
     Equal<
       SnakeCase<WeirdTextUnion>,
-      | "some_weird_cased_$*_string_1986_foo_bar_w_for_wumbo"
+      | "some_weird_cased_$*_string1986_foo_bar_w_for_wumbo"
       | "dont_distribute_unions"
     >
   >;
@@ -56,7 +58,7 @@ describe("camelCase", () => {
 describe("snakeCase", () => {
   test("casing functions", () => {
     const expected =
-      "some_weird_cased_$*_string_1986_foo_bar_w_for_wumbo" as const;
+      "some_weird_cased_$*_string1986_foo_bar_w_for_wumbo" as const;
     const result = snakeCase(WEIRD_TEXT);
     expect(result).toEqual(expected);
     type test = Expect<Equal<typeof result, typeof expected>>;
@@ -66,5 +68,87 @@ describe("snakeCase", () => {
     const expected = "one_two_three_four_five_six_seven_eight_nine_ten";
     expect(result).toEqual(expected);
     type test = Expect<Equal<typeof result, typeof expected>>;
+  });
+});
+
+describe("requested changes by RoNoLo", () => {
+  test("camelCase", () => {
+    const result = camelCase("address_line1");
+    const expected = "addressLine1";
+    expect(result).toEqual(expected);
+    type test = Expect<Equal<typeof result, typeof expected>>;
+  });
+
+  test("snakeCase", () => {
+    const result = snakeCase("addressLine1");
+    const expected = "address_line1";
+    expect(result).toEqual(expected);
+    type test = Expect<Equal<typeof result, typeof expected>>;
+  });
+
+  test("both camel and snake", () => {
+    const result = snakeCase(camelCase("address_line1"));
+    const expected = "address_line1";
+    expect(result).toEqual(expected);
+    type test = Expect<Equal<typeof result, typeof expected>>;
+
+    const result2 = camelCase(snakeCase("addressLine1"));
+    const expected2 = "addressLine1";
+    expect(result2).toEqual(expected2);
+    type test2 = Expect<Equal<typeof result2, typeof expected2>>;
+  });
+
+  test("deepCamelKeys", () => {
+    const result = deepCamelKeys({
+      address_line1: "Somestreet 15",
+      address_line2: "next to Müller",
+    });
+    const expected = {
+      addressLine1: "Somestreet 15",
+      addressLine2: "next to Müller",
+    };
+    expect(result).toEqual(expected);
+    type test = Expect<Equal<typeof result, typeof expected>>;
+  });
+
+  test("deepSnakeKeys", () => {
+    const result = deepSnakeKeys({
+      addressLine1: "Somestreet 15",
+      addressLine2: "next to Müller",
+    });
+    const expected = {
+      address_line1: "Somestreet 15",
+      address_line2: "next to Müller",
+    };
+    expect(result).toEqual(expected);
+    type test = Expect<Equal<typeof result, typeof expected>>;
+  });
+
+  test("both deepSnake and deepCamel", () => {
+    const result = deepCamelKeys(
+      deepSnakeKeys({
+        addressLine1: "Somestreet 15",
+        addressLine2: "next to Müller",
+      })
+    );
+    const expected = {
+      addressLine1: "Somestreet 15",
+      addressLine2: "next to Müller",
+    };
+    expect(result).toEqual(expected);
+    type test = Expect<Equal<typeof result, typeof expected>>;
+
+    const result2 = deepSnakeKeys(
+      deepCamelKeys({
+        address_line1: "Somestreet 15",
+        address_line2: "next to Müller",
+      })
+    );
+    const expected2 = {
+      address_line1: "Somestreet 15",
+      address_line2: "next to Müller",
+    };
+    expect(result2).toEqual(expected2);
+    type test2 = Expect<Equal<typeof result2, typeof expected2>>;
   });
 });
