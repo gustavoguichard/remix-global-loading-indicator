@@ -1,0 +1,117 @@
+diff --git a/node_modules/string-ts/dist/index.d.ts b/node_modules/string-ts/dist/index.d.ts
+index 167c253..1a27d84 100644
+--- a/node_modules/string-ts/dist/index.d.ts
++++ b/node_modules/string-ts/dist/index.d.ts
+@@ -377,25 +377,47 @@ type IsSpecial<T extends string> = IsLetter<T> extends true ? false : IsDigit<T>
+  * word: The current word.
+  * prev: The previous character.
+  */
+-type Words<sentence extends string, word extends string = '', prev extends string = ''> = string extends sentence ? string[] : sentence extends `${infer curr}${infer rest}` ? IsSeparator<curr> extends true ? Reject<[word, ...Words<rest>], ''> : prev extends '' ? Reject<Words<rest, curr, curr>, ''> : [false, true] extends [IsDigit<prev>, IsDigit<curr>] ? [
+-    word,
+-    ...Words<rest, curr, curr>
+-] : [true, false] extends [IsDigit<prev>, IsDigit<curr>] ? [
+-    word,
+-    ...Words<rest, curr, curr>
+-] : [false, true] extends [IsSpecial<prev>, IsSpecial<curr>] ? [
+-    word,
+-    ...Words<rest, curr, curr>
+-] : [true, false] extends [IsSpecial<prev>, IsSpecial<curr>] ? [
+-    word,
+-    ...Words<rest, curr, curr>
+-] : [true, true] extends [IsDigit<prev>, IsDigit<curr>] ? Reject<Words<rest, `${word}${curr}`, curr>, ''> : [true, true] extends [IsLower<prev>, IsUpper<curr>] ? [
+-    word,
+-    ...Words<rest, curr, curr>
+-] : [true, true] extends [IsUpper<prev>, IsLower<curr>] ? [
+-    DropSuffix<word, prev>,
+-    ...Words<rest, `${prev}${curr}`, curr>
+-] : Reject<Words<rest, `${word}${curr}`, curr>, ''> : Reject<[word], ''>;
++type Words<
++  sentence extends string,
++  word extends string = '',
++  prev extends string = '',
++> = string extends sentence
++  ? string[] // Avoid spending resources on a wide type
++  : sentence extends `${infer curr}${infer rest}`
++  ? IsSeparator<curr> extends true
++    ? // Step 1: Remove separators
++      Reject<[word, ...Words<rest>], ''>
++    : prev extends ''
++    ? // Start of sentence, start a new word
++      Reject<Words<rest, curr, curr>, ''>
++    : [true, true] extends [IsLower<prev>, IsDigit<curr>]
++    ? // Step 2.a: Non-digit to digit: Split when from lower-case
++      Reject<Words<rest, `${word}${curr}`, curr>, ''>
++    : [true, true] extends [IsUpper<prev>, IsDigit<curr>]
++    ? // Step 2.b: Non-digit to digit: Continue when from upper-case
++      Reject<Words<rest, `${word}${curr}`, curr>, ''>
++    : [true, false] extends [IsDigit<prev>, IsDigit<curr>]
++    ? // Step 3: From digit to non-digit
++      [word, ...Words<rest, curr, curr>]
++    : [false, true] extends [IsSpecial<prev>, IsSpecial<curr>]
++    ? // Step 4: From non-special to special
++      [word, ...Words<rest, curr, curr>]
++    : [true, false] extends [IsSpecial<prev>, IsSpecial<curr>]
++    ? // Step 5: From special to non-special
++      [word, ...Words<rest, curr, curr>]
++    : [true, true] extends [IsDigit<prev>, IsDigit<curr>]
++    ? // If both are digit, continue with the sentence
++      Reject<Words<rest, `${word}${curr}`, curr>, ''>
++    : [true, true] extends [IsLower<prev>, IsUpper<curr>]
++    ? // Step 6: From lower to upper
++      [word, ...Words<rest, curr, curr>]
++    : [true, true] extends [IsUpper<prev>, IsLower<curr>]
++    ? // Step 7: From upper to upper and lower
++      // Remove the last character from the current word and start a new word with it
++      [DropSuffix<word, prev>, ...Words<rest, `${prev}${curr}`, curr>]
++    : Reject<Words<rest, `${word}${curr}`, curr>, ''> // Otherwise continue with the sentence
++  : // Step 8: Trim the last word
++    Reject<[word], ''>
+ /**
+  * A strongly typed function to extract the words from a sentence.
+  * @param sentence the sentence to extract the words from.
+diff --git a/node_modules/string-ts/dist/index.js b/node_modules/string-ts/dist/index.js
+index 192ba5e..f829dfe 100644
+--- a/node_modules/string-ts/dist/index.js
++++ b/node_modules/string-ts/dist/index.js
+@@ -137,7 +137,17 @@ var SEPARATOR_REGEX = new RegExp(
+ 
+ // src/utils/words.ts
+ function words(sentence) {
+-  return sentence.replace(SEPARATOR_REGEX, " ").replace(/([a-zA-Z])([0-9])/g, "$1 $2").replace(/([0-9])([a-zA-Z])/g, "$1 $2").replace(/([a-zA-Z0-9_\-./])([^a-zA-Z0-9_\-./])/g, "$1 $2").replace(/([^a-zA-Z0-9_\-./])([a-zA-Z0-9_\-./])/g, "$1 $2").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/([A-Z])([A-Z][a-z])/g, "$1 $2").trim().split(/\s+/g);
++  return sentence
++    .replace(SEPARATOR_REGEX, ' ') // Step 1: Remove separators
++    .replace(/([a-z])([0-9])/g, '$1$2') // Step 2: From lower-case non-digit to digit
++    .replace(/([A-Z])([0-9])/g, '$1$2') // Step 3: From upper-case non-digit to digit
++    .replace(/([0-9])([a-zA-Z])/g, '$1 $2') // Step 4: From digit to non-digit
++    .replace(/([a-zA-Z0-9_\-./])([^a-zA-Z0-9_\-./])/g, '$1 $2') // Step 5: From non-special to special
++    .replace(/([^a-zA-Z0-9_\-./])([a-zA-Z0-9_\-./])/g, '$1 $2') // Step 6: From special to non-special
++    .replace(/([a-z])([A-Z])/g, '$1 $2') // Step 7: From lower to upper
++    .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2') // Step 8: From upper to upper and lower
++    .trim() // Step 8: Trim the last word
++    .split(/\s+/g)
+ }
+ 
+ // src/utils/capitalize.ts
+diff --git a/node_modules/string-ts/dist/index.mjs b/node_modules/string-ts/dist/index.mjs
+index 3834ff0..70744aa 100644
+--- a/node_modules/string-ts/dist/index.mjs
++++ b/node_modules/string-ts/dist/index.mjs
+@@ -135,7 +135,17 @@ var SEPARATOR_REGEX = new RegExp(
+ 
+ // src/utils/words.ts
+ function words(sentence) {
+-  return sentence.replace(SEPARATOR_REGEX, " ").replace(/([a-zA-Z])([0-9])/g, "$1 $2").replace(/([0-9])([a-zA-Z])/g, "$1 $2").replace(/([a-zA-Z0-9_\-./])([^a-zA-Z0-9_\-./])/g, "$1 $2").replace(/([^a-zA-Z0-9_\-./])([a-zA-Z0-9_\-./])/g, "$1 $2").replace(/([a-z])([A-Z])/g, "$1 $2").replace(/([A-Z])([A-Z][a-z])/g, "$1 $2").trim().split(/\s+/g);
++  return sentence
++    .replace(SEPARATOR_REGEX, ' ') // Step 1: Remove separators
++    .replace(/([a-z])([0-9])/g, '$1$2') // Step 2: From lower-case non-digit to digit
++    .replace(/([A-Z])([0-9])/g, '$1$2') // Step 3: From upper-case non-digit to digit
++    .replace(/([0-9])([a-zA-Z])/g, '$1 $2') // Step 4: From digit to non-digit
++    .replace(/([a-zA-Z0-9_\-./])([^a-zA-Z0-9_\-./])/g, '$1 $2') // Step 5: From non-special to special
++    .replace(/([^a-zA-Z0-9_\-./])([a-zA-Z0-9_\-./])/g, '$1 $2') // Step 6: From special to non-special
++    .replace(/([a-z])([A-Z])/g, '$1 $2') // Step 7: From lower to upper
++    .replace(/([A-Z])([A-Z][a-z])/g, '$1 $2') // Step 8: From upper to upper and lower
++    .trim() // Step 8: Trim the last word
++    .split(/\s+/g)
+ }
+ 
+ // src/utils/capitalize.ts
